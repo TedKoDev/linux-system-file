@@ -1,0 +1,159 @@
+https://8ugust-dev.tistory.com/18 참고 함 
+
+
+// root 권한 변경
+$ sudo su -
+
+
+// 저장소 업데이트
+$ apt update
+
+
+// Nginx 설치
+$ apt install nginx
+
+ 
+
+// Nginx 웹서버 실행
+$ sudo su -
+$ service nginx start
+
+2. PHP 설치
+2 - 1 PHP 7.4 설치
+// PHP 설치
+$ apt install php7.4-fpm php7.4-common php7.4-mysql php7.4-gmp php7.4-curl php7.4-intl php7.4-mbstring php7.4-xmlrpc php7.4-gd php7.4-xml php7.4-cli php7.4-zip zip unzip
+
+
+// 서버 자동시작 설정
+$ systemctl enable php7.4-fpm
+
+
+//PHP 설정 변경
+$ vi /etc/php/7.4/fpm/php.ini
+short_open_tag = On
+memory_limit = 256M
+upload_max_filesize = 100M
+date.timezone = Asia/Seoul
+
+
+// PHP 시작 
+$ systemctl start php7.4-fpm
+
+2 - 2 Nginx PHP 연동
+// NGINX 설정파일
+$ vi /etc/nginx/nginx.conf
+
+
+.
+.
+.
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+
+http {
+
+    .
+    .
+    .
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}
+
+
+// Default 파일 편집기 오픈
+$ vi /etc/nginx/sites-available/default 
+
+
+server {
+    listen 80 default_server;
+    root /var/www/html;
+    
+    // index.php 추가
+    index index.php index.html index.htm
+    
+    .
+    .
+    .
+    // FastCGI 주석 해제
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        # With php-fpm (or other unix sockets):
+        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+        # With php-cgi (or other tcp sockets):
+        #fastcgi_pass 127.0.0.1:9000;
+    }
+    
+}
+
+// phpinfo.php 파일 생성
+$ vi /var/www/html/phpinfo.php
+
+
+// phpinfo.php 내용 작성
+<?php phpinfo(); ?>
+
+// Nginx 및 Php-fpm 재시작
+$ systemctl restart php7.4-fpm
+$ systemctl restart nginx
+
+3. MariaDB 설치
+// MariaDB 설치
+$ apt install mariadb-server mariadb-client
+
+// MariaDB 설정 
+mysql_secure_installation
+In order to log into MariaDB to secure it, we'll need to current 
+password for the root user. If you've just installed MariaDB, and
+you haven't set the rot passwor yet, the password will be blank,
+so you should just press enter here.
+
+Enter current password for root (enter for none):    // 그냥 엔터(Enter) 누르기
+
+
+
+
+
+Setting the root password ensures that nobody can log into the
+MariaDB root user without the poper authorisation.
+Set root passwor? [Y/n] :     // Y누르고 사용할 root 계정 비밀번호 입력
+
+// DB 및 User 생성
+$ mysql -u root -p
+
+mysql> CREATE DATABASE YOUR_DATABASE_NAME;
+mysql> CREATE USER ‘YOUR_USER‘@’localhost’ IDENTIFIED BY ‘password‘;
+mysql> GRANT ALL ON YOUR_DATABASE_NAME.* TO ‘YOUR_USER‘@’localhost’ WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON *.* TO hong@'%' with grant option;  <= hong으로도 schemas 작성가능(mysql workbench에서 )
+mysql> FLUSH PRIVILEGES;
+mysql> EXIT;
+
+
+
+
+** 워크벤치나 HEIDI등 외부에서  DB에 접속하려면 
+
+ect/mysql/mariadb.conf.d/ 에 위치한 50server.cnf 파일에 들어가서  
+Basic 세팅 변경이 필요함 
+
+#
+# * Basic Settings
+#
+user                    = mysql
+pid-file                = /run/mysqld/mysqld.pid
+socket                  = /run/mysqld/mysqld.sock
+port                   = 3306   <=========================================== 주석제거 
+basedir                 = /usr
+datadir                 = /var/lib/mysql
+tmpdir                  = /tmp
+lc-messages-dir         = /usr/share/mysql
+#skip-external-locking
+
+# Instead of skip-networking the default is now to listen only on
+# localhost which is more compatible and is not less secure.
+bind-address            = 0.0.0.0  <=========================================== 0.0.0.0으로 바꿔주기 
+
+
+
+https://8ugust-dev.tistory.com/19참고하기 
